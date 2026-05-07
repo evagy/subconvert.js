@@ -255,7 +255,16 @@ export async function subconverterHandler(req: Request, res: Response): Promise<
       list,
     });
 
-    // Set response headers
+    // Browser detection: return HTML page for browser preview
+    // Use ?preview=1 to force HTML; auto-detect only when UA clearly indicates a browser
+    const preview = query.preview === 'true' || query.preview === '1';
+    if (preview || isBrowser(req)) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(renderHtmlPage(output, target, proxies.length));
+      return;
+    }
+
+    // Set response headers for clients
     const filename = (query.filename as string) || `subconverter_${target}`;
     res.setHeader('Content-Type', getContentType(target));
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -266,6 +275,89 @@ export async function subconverterHandler(req: Request, res: Response): Promise<
     console.error('Subconverter error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+}
+
+function isBrowser(req: Request): boolean {
+  const ua = (req.headers['user-agent'] || '').toLowerCase();
+  const accept = (req.headers['accept'] || '').toLowerCase();
+
+  // Known proxy clients should never get HTML
+  const proxyClients = ['clash', 'surge', 'quantumult', 'loon', 'shadowrocket', 'sing-box', 'singbox', 'surfboard', 'v2ray', 'trojan'];
+  for (const client of proxyClients) {
+    if (ua.includes(client)) return false;
+  }
+
+  // Common HTTP tools / libraries
+  const tools = ['curl', 'wget', 'python-requests', 'axios', 'okhttp', 'postman', 'insomnia'];
+  for (const tool of tools) {
+    if (ua.includes(tool)) return false;
+  }
+
+  // Empty or very short UA likely an API client
+  if (!ua || ua.length < 10) return false;
+
+  // Only treat as browser if it accepts HTML and has a browser-like UA
+  if (accept.includes('text/html')) {
+    return ua.includes('mozilla') || ua.includes('chrome') || ua.includes('safari') || ua.includes('firefox') || ua.includes('edge');
+  }
+
+  return false;
+}
+
+function renderHtmlPage(content: string, target: string, nodeCount: number): string {
+  const safeContent = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subconverter - ${target}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f0f6fc; }
+  .meta { color: #8b949e; font-size: 0.875rem; margin-bottom: 1rem; }
+  .actions { margin-bottom: 1rem; display: flex; gap: 8px; }
+  button { background: #238636; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+  button:hover { background: #2ea043; }
+  button.secondary { background: #21262d; border: 1px solid #30363d; }
+  button.secondary:hover { background: #30363d; }
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.8125rem; line-height: 1.5; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #238636; color: #fff; padding: 10px 16px; border-radius: 6px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Subconverter Output</h1>
+  <div class="meta">Target: <strong>${target}</strong> | Nodes: <strong>${nodeCount}</strong></div>
+  <div class="actions">
+    <button onclick="copyText()">Copy</button>
+    <button class="secondary" onclick="downloadFile()">Download</button>
+  </div>
+  <pre id="code">${safeContent}</pre>
+</div>
+<div id="toast" class="toast">Copied!</div>
+<script>
+  const content = ${JSON.stringify(content)};
+  function copyText() {
+    navigator.clipboard.writeText(content).then(() => {
+      const t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    });
+  }
+  function downloadFile() {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'subconverter_${target}';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+</script>
+</body>
+</html>`;
 }
 
 async function loadExternalConfig(url: string): Promise<ExternalConfig> {
@@ -341,6 +433,7 @@ function getContentType(target: TargetFormat): string {
   switch (target) {
     case 'clash':
     case 'clashr':
+      return 'application/x-yaml; charset=utf-8';
     case 'surge':
     case 'surfboard':
     case 'quan':

@@ -206,6 +206,16 @@ function buildClashProxyGroups(
 ): Record<string, unknown>[] {
   const groups: Record<string, unknown>[] = [];
 
+  // Auto-generate a default select group if none configured
+  if (groupConfigs.length === 0 && proxyNames.length > 0) {
+    groups.push({
+      name: 'Proxy',
+      type: 'select',
+      proxies: [...proxyNames, 'DIRECT'],
+    });
+    return groups;
+  }
+
   for (const gc of groupConfigs) {
     const group: Record<string, unknown> = {
       name: gc.name,
