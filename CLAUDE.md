@@ -1,4 +1,4 @@
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Current plan: specs/001-add-chinese-docs/plan.md
+Feature: 增加中文文档 — 创建 README_zh-CN.md 中文翻译版本
 <!-- SPECKIT END -->
