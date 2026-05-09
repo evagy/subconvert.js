@@ -1,5 +1,7 @@
 # subconvert.js
 
+[**English**](./README.md) | [**简体中文**](./README_zh-CN.md)
+
 A proxy subscription format converter implemented in TypeScript, compatible with the original [subconverter](https://github.com/tindy2013/subconverter) project.
 
 ## Features
