@@ -51,7 +51,7 @@ On macOS, you can install subconverter as a launchd socket-activated service. la
 npm run service:install
 ```
 
-After installation, launchd listens on `127.0.0.1:25500`. The server starts on-demand and stays alive for subsequent requests. This is ideal for use with Clash Verge or other proxy clients that periodically refresh their subscriptions.
+After installation, launchd listens on `127.0.0.1:25500`. The server starts on the first request and automatically shuts down after 1 minute without requests. This is ideal for use with Clash Verge or other proxy clients that periodically refresh their subscriptions.
 
 ```bash
 # Verify the service is working
@@ -61,7 +61,7 @@ curl http://127.0.0.1:25500/version
 npm run service:uninstall
 ```
 
-How it works: launchd binds to the port and passes the listening socket to the Node.js process when a connection arrives. The server detects the socket activation and accepts connections on the inherited file descriptor.
+How it works: launchd binds to the port and passes the listening socket to the Node.js process when a connection arrives. The server detects the socket activation and accepts connections on the inherited file descriptor. After 1 minute of idle, the process exits and launchd returns to listening, ready to start again on the next request.
 
 ### Basic Usage
 

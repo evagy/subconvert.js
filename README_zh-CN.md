@@ -51,7 +51,7 @@ npm start
 npm run service:install
 ```
 
-安装后，launchd 即监听 `127.0.0.1:25500`。服务器按需启动，启动后保持存活以响应后续请求。非常适合与 Clash Verge 等需要定期刷新订阅的代理客户端配合使用。
+安装后，launchd 即监听 `127.0.0.1:25500`。服务器在首次请求时启动，空闲 1 分钟后自动停止。非常适合与 Clash Verge 等需要定期刷新订阅的代理客户端配合使用。
 
 ```bash
 # 验证服务是否正常
@@ -61,7 +61,7 @@ curl http://127.0.0.1:25500/version
 npm run service:uninstall
 ```
 
-工作原理：launchd 绑定端口并将监听 socket 传给 Node.js 进程。服务器检测到 socket 激活模式后，直接使用继承的文件描述符接受连接。
+工作原理：launchd 绑定端口并将监听 socket 传给 Node.js 进程。服务器检测到 socket 激活模式后，直接使用继承的文件描述符接受连接。空闲 1 分钟后进程自动退出，launchd 重新回到监听状态，等待下次请求再次启动。
 
 ### 基本用法
 

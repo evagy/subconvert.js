@@ -17,12 +17,20 @@ function isSocketActivated(): boolean {
   }
 }
 
+let lastRequestTime = Date.now();
+
 export function createServer(): express.Application {
   const app = express();
 
   // Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Track idle time
+  app.use((_req, _res, next) => {
+    lastRequestTime = Date.now();
+    next();
+  });
 
   // CORS
   app.use((_req, res, next) => {
@@ -58,10 +66,20 @@ export async function startServer(configPath?: string): Promise<void> {
   const socketActivated = isSocketActivated();
 
   if (socketActivated) {
-    app.listen({ fd: 3 }, () => {
+    const server = app.listen({ fd: 3 }, () => {
       console.log('Subconverter server running via launchd socket activation');
       console.log(`API mode: ${settings.apiMode}`);
     });
+
+    // Auto-shutdown after 1 minute of idle
+    const IDLE_TIMEOUT_MS = 60_000;
+    const idleCheck = setInterval(() => {
+      if (Date.now() - lastRequestTime > IDLE_TIMEOUT_MS) {
+        console.log('Idle timeout reached, shutting down...');
+        clearInterval(idleCheck);
+        server.close(() => process.exit(0));
+      }
+    }, 10_000);
   } else {
     const port = settings.listenPort;
     const host = settings.listenAddress;
