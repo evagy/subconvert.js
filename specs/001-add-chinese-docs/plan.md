@@ -5,7 +5,9 @@
 
 ## Summary
 
-创建 `README_zh-CN.md` 作为英文 README.md 的完整中文翻译版本，覆盖项目介绍、功能特性、安装步骤、快速开始、API 端点说明、配置文件参考和开发指南全部章节。纯文档工作，不涉及代码变更。
+创建 `README_zh-CN.md` 作为英文 README.md 的完整中文翻译版本，覆盖项目介绍、功能特性、安装步骤、快速开始、API 端点说明、配置文件参考和开发指南全部章节。
+
+**Scope Expansion (2026-05-27)**: 新增 macOS launchd socket 激活服务，支持按需启动和空闲自动停止。
 
 ## Technical Context
 
@@ -57,3 +59,39 @@ README_zh-CN.md          # 新增：中文文档
 ## Complexity Tracking
 
 无违规项。纯文档特性，不引入任何复杂度。
+
+---
+
+## Scope Expansion: macOS launchd Socket Activation
+
+**Date**: 2026-05-27
+
+The scope expanded beyond documentation to include a launchd socket-activated background service for macOS. This enables on-demand server startup — launchd listens on port 25500 and automatically starts the subconverter process when a request arrives, eliminating the need to manually start/stop the server for use with Clash Verge.
+
+### Implementation Changes
+
+| File | Change |
+|------|--------|
+| `src/handler/webserver.ts` | Added `isSocketActivated()` detection (fd 3 check), idle request tracking middleware, and auto-shutdown timer (60s idle timeout). Socket-activated mode uses `server.listen({ fd: 3 })` instead of port binding. |
+| `scripts/com.subconverter.service.plist` | launchd plist with `Sockets` for TCP port 25500, `RunAtLoad: false`, `KeepAlive: false`. |
+| `scripts/install-service.sh` | Auto-detects node path, builds project, generates plist, installs to `~/Library/LaunchAgents/`, loads service. |
+| `scripts/uninstall-service.sh` | Unloads and removes the launchd service. |
+| `package.json` | Added `service:install` and `service:uninstall` npm scripts. |
+| `README.md` | Added "macOS Background Service (launchd)" section. |
+| `README_zh-CN.md` | Added "macOS 后台服务（launchd）" section (Chinese). |
+
+### Architecture
+
+```text
+launchd binds :25500 (zero resources)
+       ↓ first request arrives
+launchd starts Node.js process, passes listening socket as fd 3
+       ↓
+server accepts connections on inherited fd
+       ↓ 60s idle
+server.close() → process.exit(0)
+       ↓
+launchd returns to listening state
+       ↓ next request
+launchd starts process again...
+```

@@ -5,6 +5,8 @@
 **Status**: Draft
 **Input**: User description: "增加中文文档"
 
+> **Scope Expansion (2026-05-27)**: Added macOS launchd socket activation support — see [plan.md](./plan.md) for implementation details. The server now detects launchd socket activation (fd 3), starts on first request, and auto-shuts down after 60 seconds of idle.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - 阅读中文项目文档 (Priority: P1)

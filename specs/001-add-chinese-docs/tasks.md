@@ -160,6 +160,27 @@ For one person working sequentially:
 
 ---
 
+---
+
+## Phase 6: macOS launchd Socket Activation (Scope Expansion)
+
+**Goal**: Enable on-demand server startup via launchd socket activation, with automatic idle shutdown
+
+**Independent Test**: Install the launchd service, verify server auto-starts on first request, auto-stops after 60s idle, and restarts on next request
+
+### Implementation
+
+- [x] T020 [P] Add `isSocketActivated()` helper and socket-activated listen path in `src/handler/webserver.ts`
+- [x] T021 [P] Add request-tracking middleware and 60s idle timeout auto-shutdown in `src/handler/webserver.ts`
+- [x] T022 Create launchd plist template with `Sockets` configuration in `scripts/com.subconverter.service.plist`
+- [x] T023 Create install script (`scripts/install-service.sh`) with auto-detect of node path and project directory
+- [x] T024 Create uninstall script (`scripts/uninstall-service.sh`)
+- [x] T025 Add `service:install` and `service:uninstall` npm scripts in `package.json`
+- [x] T026 Update `README.md` with "macOS Background Service (launchd)" section
+- [x] T027 Update `README_zh-CN.md` with "macOS 后台服务（launchd）" section
+
+---
+
 ## Notes
 
 - All tasks write to a single file: `README_zh-CN.md` — ensure each task appends to or edits the correct section
