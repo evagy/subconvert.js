@@ -42,6 +42,27 @@ npm start
 
 服务器默认在 `http://127.0.0.1:25500` 启动。
 
+### macOS 后台服务（launchd）
+
+在 macOS 上，可以将 subconverter 安装为 launchd socket 激活服务。launchd 监听 25500 端口，在首次请求到达时自动启动服务器——无需手动启停。
+
+```bash
+# 构建并安装 launchd 服务
+npm run service:install
+```
+
+安装后，launchd 即监听 `127.0.0.1:25500`。服务器按需启动，启动后保持存活以响应后续请求。非常适合与 Clash Verge 等需要定期刷新订阅的代理客户端配合使用。
+
+```bash
+# 验证服务是否正常
+curl http://127.0.0.1:25500/version
+
+# 卸载服务
+npm run service:uninstall
+```
+
+工作原理：launchd 绑定端口并将监听 socket 传给 Node.js 进程。服务器检测到 socket 激活模式后，直接使用继承的文件描述符接受连接。
+
 ### 基本用法
 
 将订阅转换为 Clash 格式：

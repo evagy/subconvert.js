@@ -42,6 +42,27 @@ npm start
 
 The server will start at `http://127.0.0.1:25500` by default.
 
+### macOS Background Service (launchd)
+
+On macOS, you can install subconverter as a launchd socket-activated service. launchd listens on port 25500 and automatically starts the server when the first request arrives — no need to manually start/stop the server.
+
+```bash
+# Build and install the launchd service
+npm run service:install
+```
+
+After installation, launchd listens on `127.0.0.1:25500`. The server starts on-demand and stays alive for subsequent requests. This is ideal for use with Clash Verge or other proxy clients that periodically refresh their subscriptions.
+
+```bash
+# Verify the service is working
+curl http://127.0.0.1:25500/version
+
+# Uninstall the service
+npm run service:uninstall
+```
+
+How it works: launchd binds to the port and passes the listening socket to the Node.js process when a connection arrives. The server detects the socket activation and accepts connections on the inherited file descriptor.
+
 ### Basic Usage
 
 Convert a subscription to Clash format:

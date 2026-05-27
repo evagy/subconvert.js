@@ -1,4 +1,5 @@
 import express from 'express';
+import * as fs from 'fs';
 import {
   subconverterHandler,
   versionHandler,
@@ -7,6 +8,14 @@ import {
   loadSettings,
   getSettings,
 } from './interfaces';
+
+function isSocketActivated(): boolean {
+  try {
+    return fs.fstatSync(3).isSocket();
+  } catch {
+    return false;
+  }
+}
 
 export function createServer(): express.Application {
   const app = express();
@@ -46,12 +55,20 @@ export async function startServer(configPath?: string): Promise<void> {
   const settings = getSettings();
   const app = createServer();
 
-  const port = settings.listenPort;
-  const host = settings.listenAddress;
+  const socketActivated = isSocketActivated();
 
-  app.listen(port, host, () => {
-    console.log(`Subconverter server running at http://${host}:${port}`);
-    console.log(`API mode: ${settings.apiMode}`);
-    console.log(`Access token: ${settings.accessToken ? '****' : 'none'}`);
-  });
+  if (socketActivated) {
+    app.listen({ fd: 3 }, () => {
+      console.log('Subconverter server running via launchd socket activation');
+      console.log(`API mode: ${settings.apiMode}`);
+    });
+  } else {
+    const port = settings.listenPort;
+    const host = settings.listenAddress;
+    app.listen(port, host, () => {
+      console.log(`Subconverter server running at http://${host}:${port}`);
+      console.log(`API mode: ${settings.apiMode}`);
+      console.log(`Access token: ${settings.accessToken ? '****' : 'none'}`);
+    });
+  }
 }
